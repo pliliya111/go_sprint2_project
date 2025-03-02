@@ -10,14 +10,12 @@ import (
 func main() {
 	r := gin.Default()
 
-	// API endpoints
 	r.POST("/api/v1/calculate", handler.AddExpression)
 	r.GET("/api/v1/expressions", handler.GetExpressions)
 	r.GET("/api/v1/expressions/:id", handler.GetExpressionByID)
 	r.GET("/internal/task", handler.GetTask)
 	r.POST("/internal/task", handler.SubmitTaskResult)
 
-	// Запуск сервера
 	if err := r.Run(":8080"); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

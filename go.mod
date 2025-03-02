@@ -1,6 +1,6 @@
 module github.com/pliliya111/go_sprint2_project
 
-go 1.23.2
+go 1.21
 
 require (
 	github.com/gin-gonic/gin v1.10.0

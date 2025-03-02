@@ -49,19 +49,16 @@ func AddExpression(c *gin.Context) {
 		Expression string `json:"expression"`
 	}
 
-	// Привязка JSON-запроса
 	if err := c.BindJSON(&request); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "invalid data"})
 		return
 	}
 
-	// Валидация выражения
 	if !validExpressionRegex.MatchString(request.Expression) {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Expression is not valid"})
 		return
 	}
 
-	// Создание нового выражения
 	expressionID := uuid.New().String()
 	expr := &model.Expression{
 		ID:         expressionID,
@@ -69,15 +66,12 @@ func AddExpression(c *gin.Context) {
 		Status:     "pending",
 	}
 
-	// Сохранение выражения
 	Mutex.Lock()
 	Expressions[expressionID] = expr
 	Mutex.Unlock()
 
-	// Разбор выражения на задачи
 	tokens := parseExpression(request.Expression)
 
-	// Обработка операций умножения и деления
 	for i := 0; i < len(tokens); i++ {
 		if tokens[i] == "*" || tokens[i] == "/" {
 			arg1ID := tokens[i-1]
@@ -97,7 +91,6 @@ func AddExpression(c *gin.Context) {
 		}
 	}
 
-	// Удаление пустых токенов
 	filteredTokens := []string{}
 	for _, token := range tokens {
 		if token != "" {
@@ -106,7 +99,6 @@ func AddExpression(c *gin.Context) {
 	}
 	tokens = filteredTokens
 
-	// Обработка операций сложения и вычитания
 	for i := 0; i < len(tokens); i++ {
 		if tokens[i] == "+" || tokens[i] == "-" {
 			arg1ID := tokens[i-1]
@@ -126,103 +118,18 @@ func AddExpression(c *gin.Context) {
 		}
 	}
 
-	// Установка результата выражения
 	if len(Tasks) > 0 {
 		expr.Result = Tasks[len(Tasks)-1].ID
 	}
 	expr.Status = "in_progress"
 
-	// Логирование задач (для отладки)
 	fmt.Println("All tasks:")
 	for _, task := range Tasks {
 		fmt.Printf("Task ID: %s, Arg1: %s, Arg2: %s, Operation: %s\n", task.ID, task.Arg1, task.Arg2, task.Operation)
 	}
 
-	// Возврат ответа
 	c.JSON(http.StatusCreated, gin.H{"id": expressionID})
 }
-
-// func AddExpression(c *gin.Context) {
-// 	var request struct {
-// 		Expression string `json:"expression"`
-// 	}
-// 	if err := c.BindJSON(&request); err != nil {
-// 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "invalid data"})
-// 		return
-// 	}
-
-// 	expressionID := uuid.New().String()
-// 	expr := &model.Expression{
-// 		ID:         expressionID,
-// 		Expression: request.Expression,
-// 		Status:     "pending",
-// 	}
-
-// 	Mutex.Lock()
-// 	Expressions[expressionID] = expr
-// 	Mutex.Unlock()
-
-// 	tokens := parseExpression(request.Expression)
-
-// 	for i := 0; i < len(tokens); i++ {
-// 		if tokens[i] == "*" || tokens[i] == "/" {
-// 			arg1ID := tokens[i-1]
-// 			arg2ID := tokens[i+1]
-// 			taskID := uuid.New().String()
-// 			task := &model.Task{
-// 				ID:        taskID,
-// 				Arg1:      arg1ID,
-// 				Arg2:      arg2ID,
-// 				Operation: tokens[i],
-// 			}
-// 			TaskMap[taskID] = task
-// 			Tasks = append(Tasks, task)
-// 			tokens[i-1] = taskID
-// 			tokens[i] = ""
-// 			tokens[i+1] = ""
-// 		}
-// 	}
-
-// 	filteredTokens := []string{}
-// 	for _, token := range tokens {
-// 		if token != "" {
-// 			filteredTokens = append(filteredTokens, token)
-// 		}
-// 	}
-// 	tokens = filteredTokens
-
-// 	for i := 0; i < len(tokens); i++ {
-// 		if tokens[i] == "+" || tokens[i] == "-" {
-// 			arg1ID := tokens[i-1]
-// 			arg2ID := tokens[i+1]
-// 			taskID := uuid.New().String()
-// 			task := &model.Task{
-// 				ID:        taskID,
-// 				Arg1:      arg1ID,
-// 				Arg2:      arg2ID,
-// 				Operation: tokens[i],
-// 			}
-// 			TaskMap[taskID] = task
-// 			Tasks = append(Tasks, task)
-
-// 			tokens[i-1] = taskID
-// 			tokens[i] = ""
-// 			tokens[i+1] = ""
-// 		}
-// 	}
-
-// 	if len(Tasks) > 0 {
-// 		expr.Result = Tasks[len(Tasks)-1].ID
-// 	}
-// 	expr.Status = "in_progress"
-
-// 	fmt.Println("All tasks:")
-// 	for _, task := range Tasks {
-// 		fmt.Printf("Task ID: %s, Arg1: %s, Arg2: %s, Operation: %s\n", task.ID, task.Arg1, task.Arg2, task.Operation)
-// 	}
-
-// 	c.JSON(http.StatusCreated, gin.H{"id": expressionID})
-// }
 
 func GetExpressions(c *gin.Context) {
 	Mutex.Lock()
